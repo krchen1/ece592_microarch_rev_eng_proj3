@@ -1,0 +1,8 @@
+using data/artemisia/20261026-155540_all/q4_q5_rob_prf.csv
+wrote data/artemisia/20261026-155540_all/plots/q4_q5_rob_prf.png
+using data/artemisia/20261026-155540_all/q6_levels.csv
+using data/artemisia/20261026-155540_all/q6_levels_seq.csv
+wrote data/artemisia/20261026-155540_all/plots/q6_levels.png
+using data/artemisia/20261026-155540_all/q7_assoc.csv
+wrote data/artemisia/20261026-155540_all/plots/q7_assoc_heatmap.png
+wrote data/artemisia/20261026-155540_all/plots/q7_assoc_lines.png

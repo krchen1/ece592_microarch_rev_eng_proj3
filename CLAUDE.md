@@ -147,3 +147,9 @@ Apply per experiment. *Verify every item on the actual target CPU; mark unverifi
 - Run: `CPU=N ./scripts/run_all.sh <machine>` (full set) or `CPU=N ./scripts/run_exp.sh <machine> <label> <program> [args...]` (single run)
 - Plot: `python3 scripts/plot.py [machine[:run_dir] ...]`
 - Package: `make zip`
+
+### artemisia system snapshot (`/system_configuration_snapshot/`, provided on artemisia only)
+Captures BIOS/UEFI settings, kernel, per-CPU settings (governor, MSR 0x1a4 prefetcher bits), uncore freq and conda env into a key,value CSV. `sudo` is needed for BIOS settings; without it the BIOS part is skipped.
+- Snapshot: `sudo python3 /system_configuration_snapshot/system_configuration_snapshot.py -o <out.csv>`. Always pass `-o`, because the default `./snapshot.csv` overwrites the shared sample if run from that directory. Options: `-u NAME` (default `$SUDO_USER`), `--no-onecli` (skip BIOS query), `--onecli PATH`, `--cpupower PATH`.
+- Diff: `python3 /system_configuration_snapshot/configuration_diff.py OLD.csv NEW.csv [--all]` (`--all` also shows current-frequency noise). Exit status: 0 = same, 1 = differs, 2 = error.
+- Use: take a snapshot before and after each artemisia run and diff them to show the config stayed fixed. Shared reference snapshot: `/system_configuration_snapshot/snapshot.csv`.

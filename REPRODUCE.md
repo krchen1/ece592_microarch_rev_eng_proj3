@@ -24,7 +24,11 @@ data/<machine>/<YYYYmmdd-HHMMSS>_<label>/ from run_exp.sh
 data/<machine>/latest -> newest run_all.sh directory
 ```
 
-`plot.py` uses `latest` by default; pin another run with
+Each run directory also gets `plots/` (PNGs and summary tables of that run
+alone, made by `plot.py --file`) and `plot.log`.
+
+The side-by-side figures in `plots/` come from `plot.py`, which uses `latest`
+by default; pin another run with
 `python3 scripts/plot.py artemisia:20261027-101500_all crux`.
 
 ## Files in a run directory

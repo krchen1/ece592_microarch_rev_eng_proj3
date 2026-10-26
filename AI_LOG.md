@@ -46,3 +46,27 @@ Append new entries at the bottom, newest last. One entry per session or substant
 - **Prompt/request:** "create directory to output raw data. update claude md to save data for every run"
 - **AI contribution:** Created `data/artemisia/` and `data/crux/`. Changed `scripts/run_all.sh` to write each run to a new `data/<machine>/<timestamp>_all/` directory (with `cmd.txt`, `latest` symlink); moved environment capture to new `scripts/capture_env.sh`; added `scripts/run_exp.sh` for single/ad-hoc runs saved the same way; `scripts/plot.py` now reads `latest` or a pinned run (`machine:run_dir`). Added `CLAUDE.md` §5b (raw-data retention rule) and updated §3, §4, §9, §11; updated `REPRODUCE.md`.
 - **Student review/changes:** _(student to fill in)_
+
+### 2026-10-26 — artemisia system-snapshot commands
+- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) via Claude Code
+- **Prompt/request:** "how do i run" `/system_configuration_snapshot` on artemisia; "add the commands to claude md"
+- **AI contribution:** Read the snapshot and diff scripts' argument parsers and explained their usage; added an "artemisia system snapshot" subsection to `CLAUDE.md` §11 (snapshot/diff commands, `-o` warning, suggested before/after-run use).
+- **Student review/changes:** _(student to fill in)_
+
+### 2026-10-26 — first full run on artemisia
+- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) via Claude Code
+- **Prompt/request:** "run all sh vs run exp vs capture env sh"; "execute run all script"
+- **AI contribution:** Explained the three run scripts. Checked per-CPU load and picked CPU 2 (sibling 58 idle; load average ~16 from other users), then ran `CPU=2 scripts/run_all.sh artemisia`, which produced `data/artemisia/20261026-155540_all/`. Checked the logs for errors and confirmed every filler type ran. No code changed and no numbers interpreted.
+- **Student review/changes:** _(student to fill in)_
+
+### 2026-10-26 — per-run PNG plots
+- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) via Claude Code
+- **Prompt/request:** "update the scripts to generate the png plots also"
+- **AI contribution:** Added a `--file` mode to `scripts/plot.py` that plots only the CSVs it is given and detects the experiment type from the columns. Panel titles now show the run directory, and long figure titles wrap. `scripts/run_all.sh` and `scripts/run_exp.sh` now finish by writing that run's PNGs and summary tables to `<run_dir>/plots/` and the plotting output to `<run_dir>/plot.log`. A plotting failure does not fail the run. Updated `REPRODUCE.md`. Tested by plotting into the scratchpad; the existing run directory was not modified.
+- **Student review/changes:** _(student to fill in)_
+
+### 2026-10-26 — plots added to an existing run
+- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) via Claude Code
+- **Prompt/request:** "add plots folder to 20261026-155540_all and add the plots"
+- **AI contribution:** At the student's request, ran `HW3_PLOTS=<run>/plots python3 scripts/plot.py --file <run>/*.csv` on `data/artemisia/20261026-155540_all/`. This added `plots/` (4 PNGs and 3 summary CSVs) and `plot.log`, made after the run with the same `plot.py` that the run scripts now call. No existing file in the run was changed.
+- **Student review/changes:** _(student to fill in)_

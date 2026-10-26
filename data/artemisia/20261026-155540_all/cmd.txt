@@ -1,0 +1,4 @@
+/home/krchen/ece592_microarch_rev_eng_proj3/bin/q4_q5_rob_prf -f all -n 0:800:4 -t 31 -c 2
+/home/krchen/ece592_microarch_rev_eng_proj3/bin/q6_q7_tlb levels -t 31 -c 2
+/home/krchen/ece592_microarch_rev_eng_proj3/bin/q6_q7_tlb levels --seq --no-control -q 4 -t 31 -c 2
+/home/krchen/ece592_microarch_rev_eng_proj3/bin/q6_q7_tlb assoc -t 31 -c 2 -l 32768

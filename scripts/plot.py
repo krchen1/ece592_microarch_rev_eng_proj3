@@ -8,11 +8,17 @@ newest run directory that contains it. Pin a run with machine:run_dir.
 Writes figures to plots/ plus per-point statistics (median, min, q1, q3 over
 trials) to plots/summary_<machine>_<exp>.csv.
 
+--file plots only the given CSVs (one run of one machine). The experiment
+type is detected from the columns. run_all.sh and run_exp.sh use it with
+HW3_PLOTS=<run_dir>/plots so every run gets its own PNGs.
+
 usage: python3 scripts/plot.py [machine[:run_dir] ...]  (default: artemisia crux)
+       python3 scripts/plot.py --file data/<machine>/<run>/<x>.csv [...]
 """
 import csv
 import os
 import sys
+import textwrap
 from collections import defaultdict
 
 import matplotlib
@@ -44,10 +50,13 @@ plt.rcParams.update({
 
 
 PINNED_RUN = {}   # machine -> run directory name given as machine:run_dir
+FILE_OVERRIDE = {}  # experiment name -> csv path, set by --file
 
 
 def find_csv(machine, name):
     """Path of <name>.csv for this machine, following the rules above."""
+    if FILE_OVERRIDE:
+        return FILE_OVERRIDE.get(name)
     mdir = os.path.join(DATA, machine)
     if machine in PINNED_RUN:
         candidates = [PINNED_RUN[machine]]
@@ -61,6 +70,31 @@ def find_csv(machine, name):
         if os.path.exists(path):
             return path
     return None
+
+
+def panel_title(machine, *names):
+    """Machine name plus the run directory the panel's data came from."""
+    for name in names:
+        path = find_csv(machine, name)
+        if path:
+            run = os.path.dirname(os.path.realpath(path))
+            return "%s\n%s" % (machine, os.path.basename(run))
+    return machine
+
+
+def csv_kind(path):
+    """Experiment name of a CSV, detected from its columns and values."""
+    with open(path) as f:
+        rows = list(csv.DictReader(f))
+    if not rows:
+        sys.exit("empty csv: " + path)
+    if "filler" in rows[0]:
+        return "q4_q5_rob_prf"
+    if {r["layout"] for r in rows} == {"tlb_seq"}:
+        return "q6_levels_seq"
+    if len({r["stride_pages"] for r in rows}) > 1:
+        return "q7_assoc"
+    return "q6_levels"
 
 
 def load(machine, name):
@@ -127,7 +161,8 @@ def plot_line(ax, s, label, color):
 def side_by_side(machines, title):
     fig, axes = plt.subplots(1, len(machines), figsize=(6 * len(machines), 4.2),
                              squeeze=False)
-    fig.suptitle(title, color=INK)
+    # Wrap so the title fits a single-panel (--file) figure too.
+    fig.suptitle(textwrap.fill(title, 55 * len(machines)), color=INK)
     return fig, axes[0]
 
 
@@ -147,7 +182,7 @@ def plot_rob_prf(machines):
                   "(median, IQR bars, dots = min)")
     for ax, m in zip(axes, machines):
         rows = load(m, "q4_q5_rob_prf")
-        ax.set_title(m, color=INK)
+        ax.set_title(panel_title(m, "q4_q5_rob_prf"), color=INK)
         ax.set_xlabel("fillers N between the two misses")
         ax.set_ylabel("core cycles per block")
         if not rows:
@@ -168,7 +203,7 @@ def plot_levels(machines):
         machines, "Q6: pointer-chase latency vs pages touched (one line per "
                   "page; control = same lines packed 64/page)")
     for ax, m in zip(axes, machines):
-        ax.set_title(m, color=INK)
+        ax.set_title(panel_title(m, "q6_levels", "q6_levels_seq"), color=INK)
         ax.set_xscale("log", base=2)
         ax.set_xlabel("pages (tlb) / lines (control)")
         ax.set_ylabel("core cycles per load")
@@ -197,7 +232,7 @@ def plot_assoc(machines):
     fig, axes = side_by_side(
         machines, "Q7: median cycles per load, stride 2^k pages x N pages")
     for ax, m in zip(axes, machines):
-        ax.set_title(m, color=INK)
+        ax.set_title(panel_title(m, "q7_assoc"), color=INK)
         ax.grid(False)
         if m not in stats:
             ax.text(0.5, 0.5, "no data", ha="center", transform=ax.transAxes)
@@ -222,7 +257,7 @@ def plot_assoc(machines):
     fig, axes = side_by_side(
         machines, "Q7: latency vs pages for selected strides (median, IQR)")
     for ax, m in zip(axes, machines):
-        ax.set_title(m, color=INK)
+        ax.set_title(panel_title(m, "q7_assoc"), color=INK)
         ax.set_xlabel("pages N")
         ax.set_ylabel("core cycles per load")
         if m not in stats:
@@ -238,7 +273,30 @@ def plot_assoc(machines):
     save(fig, "q7_assoc_lines.png")
 
 
+def plot_files(paths):
+    """--file mode: one panel per figure, only for the experiments given.
+    The machine name is taken from data/<machine>/<run>/<file>.csv."""
+    for p in paths:
+        kind = csv_kind(p)
+        if kind in FILE_OVERRIDE:
+            sys.exit("two %s files given: %s, %s" % (kind, FILE_OVERRIDE[kind], p))
+        FILE_OVERRIDE[kind] = p
+    machine = os.path.basename(os.path.dirname(os.path.dirname(
+        os.path.realpath(paths[0]))))
+    if "q4_q5_rob_prf" in FILE_OVERRIDE:
+        plot_rob_prf([machine])
+    if "q6_levels" in FILE_OVERRIDE or "q6_levels_seq" in FILE_OVERRIDE:
+        plot_levels([machine])
+    if "q7_assoc" in FILE_OVERRIDE:
+        plot_assoc([machine])
+
+
 def main():
+    if sys.argv[1:2] == ["--file"]:
+        if len(sys.argv) < 3:
+            sys.exit("usage: plot.py --file <csv> [<csv> ...]")
+        plot_files(sys.argv[2:])
+        return
     machines = []
     for arg in sys.argv[1:] or ["artemisia", "crux"]:
         m, _, run = arg.partition(":")

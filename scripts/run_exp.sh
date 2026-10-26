@@ -2,7 +2,7 @@
 # run_exp.sh <machine> <label> <program> [args...] -- one ad-hoc run (e.g. a
 # zoomed sweep) saved like run_all.sh: a NEW directory
 # data/<machine>/<YYYYmmdd-HHMMSS>_<label>/ holding env.txt, cmd.txt,
-# <label>.csv and <label>.log. Nothing earlier is overwritten.
+# <label>.csv, <label>.log and plots/*.png. Nothing earlier is overwritten.
 #
 # example:
 #   CPU=2 scripts/run_exp.sh crux q4_zoom_nop bin/q4_q5_rob_prf -f nop -n 200:240:1 -c 2
@@ -21,4 +21,9 @@ make -C "$ROOT" all >/dev/null
 "$ROOT/scripts/capture_env.sh" "$OUT" "$CPU"
 echo "$*" > "$OUT/cmd.txt"
 "$@" -o "$OUT/$LABEL.csv" 2> "$OUT/$LABEL.log"
+
+# PNGs of this run, saved inside the run directory (see run_all.sh).
+HW3_PLOTS="$OUT/plots" python3 "$ROOT/scripts/plot.py" --file "$OUT/$LABEL.csv" \
+    > "$OUT/plot.log" 2>&1 || echo "plotting failed, see $OUT/plot.log"
+
 echo "done: results in $OUT"

@@ -3,6 +3,7 @@
 #
 # Every invocation writes to a NEW directory data/<machine>/<YYYYmmdd-HHMMSS>_all/
 # so no earlier run is ever overwritten. data/<machine>/latest points to it.
+# The run's PNG plots go to <run_dir>/plots/.
 #
 # Environment variables:
 #   CPU=N          logical CPU to pin to (default 2). Keep its SMT sibling idle.
@@ -65,5 +66,10 @@ run q6_levels_seq "$BIN/q6_q7_tlb" levels --seq --no-control -q 4 \
 
 # Q7: associativity (stride 2^0 .. 2^14 pages, 1..80 pages)
 run q7_assoc "$BIN/q6_q7_tlb" assoc -t "$TRIALS" -c "$CPU" -l 32768
+
+# PNGs of this run only, saved inside the run directory. A plotting failure
+# (e.g. no matplotlib) does not fail the run: the raw CSVs are already saved.
+HW3_PLOTS="$OUT/plots" python3 "$ROOT/scripts/plot.py" --file "$OUT"/*.csv \
+    > "$OUT/plot.log" 2>&1 || echo "plotting failed, see $OUT/plot.log"
 
 echo "done: results in $OUT"
