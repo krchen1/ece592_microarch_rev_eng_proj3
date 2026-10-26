@@ -38,10 +38,10 @@ Why: no single question exceeds 35 pts, so at least 3 are needed. Effort is driv
 | 16 | ROB and BTB shared vs partitioned under SMT | 20 | not selected |
 
 ## 3. Machines (user fills in; never guess)
-| | Machine A | Machine B |
+| | Machine A: artemisia | Machine B: crux |
 |---|---|---|
-| CPU model | | |
-| Microarchitecture | | |
+| CPU model | Intel Xeon Gold 5420+ | Intel Core i7-9700 |
+| Microarchitecture | Sapphire Rapids (Golden Cove) | Coffee Lake (Skylake-family) |
 | Cores / SMT | | |
 | OS / kernel | | |
 | Microcode | | |
@@ -51,13 +51,14 @@ Why: no single question exceeds 35 pts, so at least 3 are needed. Effort is driv
 | THP state | | |
 | Spectre mitigations | | |
 
-Record `lscpu`, `cpuid`, `/sys/devices/system/cpu/vulnerabilities/*` and `cat /proc/cmdline` into `data/<machine>/env.txt` for every run session. Keep the same table in `docs/machines.md`.
+Record `lscpu`, `cpuid`, `/sys/devices/system/cpu/vulnerabilities/*` and `cat /proc/cmdline` into `env.txt` inside every run directory (done automatically by `scripts/capture_env.sh`). Keep the same table in `docs/machines.md`.
 
 ## 4. Repo layout (create as needed)
 ```
 src/        common.h (timing, pinning, stats), q4_q5_rob_prf.c, q6_q7_tlb.c
 scripts/    run_all.sh <machine>, plot.py, env capture
-data/<machine>/   raw CSVs + env.txt
+data/<machine>/<YYYYmmdd-HHMMSS>_<label>/   one directory per run: raw CSVs, logs, env.txt, cmd.txt
+data/<machine>/latest -> newest run_all.sh run
 plots/      generated figures
 report/     report source and final PDF
 docs/machines.md
@@ -72,6 +73,14 @@ Makefile    targets: all, run, plot, zip
 - Compile `-O2`, but keep timed regions in inline asm / generated code so the compiler cannot reorder, fold or remove them. Generate straight-line code (script emitting asm, or an `mmap`'d executable buffer) rather than loops when a loop branch would pollute the test.
 - Never use `xor r,r` / `mov r,0` zeroing idioms or `mov r,r` in register-pressure tests: the renamer eliminates them and they consume no physical register.
 - Save raw data to CSV before plotting; plots come from scripts, never hand-edited.
+
+## 5b. Raw data retention (every run is saved)
+- **Every run of an experiment program saves its raw data**, including test, zoom, failed and discarded runs. Nothing is run "just to look" without saving.
+- Each run gets a **new** directory `data/<machine>/<YYYYmmdd-HHMMSS>_<label>/` containing the per-trial CSV(s), the stderr log(s), `env.txt` (machine state) and `cmd.txt` (exact command lines).
+- Use `scripts/run_all.sh <machine>` for the full set (label `all`; updates the `data/<machine>/latest` symlink) and `scripts/run_exp.sh <machine> <label> <program> [args...]` for any single/ad-hoc run. Do not call the binaries with `-o` into `data/` by hand, and never write to stdout only.
+- **Never overwrite, edit or delete** an existing run directory. A bad run stays; explain in the report why it was excluded.
+- `scripts/plot.py` reads `latest` by default (or `machine:run_dir`); the report must name the run directory each figure came from.
+- Development-host test runs (not artemisia/crux) go to the scratchpad, never into `data/`.
 
 ## 5a. Performance counter policy
 - **Reverse-engineering phase: NO performance counters.** Do not use `perf`, `rdpmc`, PMU events, or any hardware counter to *derive* ROB/PRF/TLB sizes, associativity, or any other result. Conclusions must come from timing alone (`lfence; rdtscp; lfence` etc.).
@@ -124,17 +133,17 @@ Apply per experiment. *Verify every item on the actual target CPU; mark unverifi
 - If SGX is unavailable on both machines, state the limitation with evidence (`cpuid` SGX bit, BIOS setting, driver absence).
 
 ## 9. Workflow
-1. Write `src/q4_q5_rob_prf.c` and `src/q6_q7_tlb.c` using `common.h`. 2. Run on machine A and B (user runs on real hardware; Claude never invents numbers). 3. Store CSV in `data/<machine>/`. 4. Plot A and B side by side. 5. Write short methodology + comparison + uncertainty. 6. Repeat inside the enclave on the SGX machine. 7. Append to `AI_LOG.md`.
+1. Write `src/q4_q5_rob_prf.c` and `src/q6_q7_tlb.c` using `common.h`. 2. Run on machine A and B (user runs on real hardware; Claude never invents numbers). 3. Raw CSVs land in a new `data/<machine>/<timestamp>_<label>/` per run (§5b). 4. Plot A and B side by side. 5. Write short methodology + comparison + uncertainty. 6. Repeat inside the enclave on the SGX machine. 7. Append to `AI_LOG.md`.
 
 ## 10. Rules for Claude
 - Never fabricate measurements; published ROB/PRF/TLB sizes go in a separate "published" column and are labeled as such.
 - Ask the user for machine details before writing experiments.
 - Keep code simple enough for the student to explain line by line; comment the *why* of each timed region.
-- Log AI contributions in `AI_LOG.md`; the final ZIP must contain it.
+- **AI log (mandatory):** before ending any session that created or changed files, generated code, analysis or report text, append an entry to `AI_LOG.md` using the entry format at the top of that file (date, model, request, contribution with file list; leave "Student review/changes" for the student to fill in). Append only; never edit or delete earlier entries. Q&A-only sessions with no artifacts need no entry. The final ZIP must contain `AI_LOG.md`.
 - Do not commit unless asked. Commit messages end with the attribution line from the session context.
 
 ## 11. Commands (to be created)
 - Build: `make`
-- Run: `./scripts/run_all.sh <machine>`
-- Plot: `python scripts/plot.py`
+- Run: `CPU=N ./scripts/run_all.sh <machine>` (full set) or `CPU=N ./scripts/run_exp.sh <machine> <label> <program> [args...]` (single run)
+- Plot: `python3 scripts/plot.py [machine[:run_dir] ...]`
 - Package: `make zip`
